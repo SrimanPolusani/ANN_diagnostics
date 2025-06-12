@@ -7,7 +7,18 @@ import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
+import os
+import random
 
+# --- START: ROBUST SEEDING BLOCK ---
+# This is the most important change. Do it right after your imports.
+SEED = 1  # Use a single seed value for everything
+os.environ['PYTHONHASHSEED'] = str(SEED)
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0' # As per the warning log
+random.seed(SEED)
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
+# --- END: ROBUST SEEDING BLOCK ---
 
 class ANN_Diagnoser:
     def __init__(self):
@@ -55,8 +66,6 @@ class ANN_Diagnoser:
 
     @staticmethod
     def build_models():
-        tf.random.set_seed(20)
-
         model_1 = Sequential(
             [
                 Dense(25, activation='relu'),
@@ -95,12 +104,12 @@ class ANN_Diagnoser:
         for model in self.nn_models:
             model.compile(
                 loss='mse',
-                optimizer=Adam(learning_rate=0.1)
+                optimizer=Adam(learning_rate=0.001)
             )
 
             model.fit(
                 self.train_data, self.y_train,
-                epochs=300,
+                epochs=5000,
                 verbose=0
             )
 
