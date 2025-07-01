@@ -9,6 +9,8 @@ from keras.layers import Dense
 from keras.optimizers import Adam
 import os
 import random
+# Add this import at the top
+from sklearn.metrics import mean_squared_error, r2_score
 
 # --- START: ROBUST SEEDING BLOCK ---
 # This is the most important change. Do it right after your imports.
@@ -153,8 +155,52 @@ class ANN_Diagnoser:
         # Cross Validation MSE: 88.51
         # Test MSE: 87.77
 
+        # ... (rest of your ANN_Diagnoser class remains the same) ...
+
+    def quantify_results_in_percentage(self, model_num):
+        selected_model = self.nn_models[model_num - 1]
+
+        # Predictions on the test set
+        yhat_test = selected_model.predict(self.test_data)
+
+        # 1. Calculate MAPE
+        # Avoid division by zero: filter out y_test values that are exactly zero
+        # For values very close to zero, MAPE can still be unstable. Consider if your data has such points.
+        non_zero_indices = self.y_test != 0
+        if np.any(non_zero_indices):
+            mape = np.mean(np.abs((self.y_test[non_zero_indices] - yhat_test[non_zero_indices]) / self.y_test[
+                non_zero_indices])) * 100
+            print(f"Test Mean Absolute Percentage Error (MAPE): {mape:.2f}%")
+        else:
+            print("Cannot calculate MAPE: All actual test values are zero.")
+
+        # 2. Calculate R-squared
+        r2 = r2_score(self.y_test, yhat_test) * 100
+        print(f"Test R-squared (Percentage of Explained Variance): {r2:.2f}%")
+
+        # 3. Percentage of RMSE relative to the mean of Y
+        test_rmse = np.sqrt(mean_squared_error(self.y_test,
+                                               yhat_test))  # Note: your MSE is already divided by 2, so remove that for true RMSE calculation
+        mean_y_test = np.mean(self.y_test)
+        if mean_y_test != 0:
+            rmse_relative_to_mean = (test_rmse / mean_y_test) * 100
+            print(f"Test RMSE relative to mean of Y: {rmse_relative_to_mean:.2f}%")
+        else:
+            print("Cannot calculate RMSE relative to mean: Mean of actual test values is zero.")
+
+        # 4. Percentage of RMSE relative to the range of Y
+        range_y_test = np.max(self.y_test) - np.min(self.y_test)
+        if range_y_test != 0:
+            rmse_relative_to_range = (test_rmse / range_y_test) * 100
+            print(f"Test RMSE relative to range of Y: {rmse_relative_to_range:.2f}%")
+        else:
+            print("Cannot calculate RMSE relative to range: Range of actual test values is zero.")
+
+
 
 # Instance of class ANN_Diagnoser
 diagnostor = ANN_Diagnoser()
 diagnostor.run_models()
 diagnostor.final_test(model_num=3)
+print("\n--- Additional Percentage Quantifications ---")
+diagnostor.quantify_results_in_percentage(model_num=3)
